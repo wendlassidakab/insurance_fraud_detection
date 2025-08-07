@@ -1,5 +1,6 @@
 # Install if not already installed
-install.packages(c("tidyverse", "skimr", "DataExplorer", "janitor", "readxl"))
+install.packages(c("tidyverse", "skimr", "DataExplorer", "janitor", "readxl",
+                   "rlang"))
 
 
 # load librairies
@@ -9,6 +10,7 @@ library(DataExplorer)
 library(janitor)
 library(readxl)
 library(ggplot2)
+library(rlang)
 
 
 # Load the dataset
@@ -107,6 +109,66 @@ ggplot(pie_data, aes(x = "", y = count, fill = fraud_reported)) +
     labs(title = "Fraud Proportion per Policy State",
         fill = "Fraud Reported") +
     theme_minimal(base_size = 13)
+
+# Sex
+tbl2 <- table(df$insured_sex, df$fraud_reported)
+prop <- tbl2 / rowSums(tbl2)
+pie_data2 <- as.data.frame(prop)
+colnames(pie_data2) <- c("insured_sex", "fraud_reported", "count")
+pie_data2$percent <- round(100 * pie_data2$count, 1)
+
+ggplot(pie_data2, aes(x = "", y = count, fill = fraud_reported)) +
+    geom_bar(stat = "identity", width = 1, color = "white") +
+    coord_polar(theta = "y") +
+    facet_wrap(~ insured_sex) +
+    geom_text(aes(label = paste0(percent, "%")),
+              position = position_stack(vjust = 0.5),
+              color = "black",
+              size = 3.5) +
+    labs(title = "Fraud proportion per Sex" ,
+         fill = "Fraud Reported")+
+    theme_minimal()
+
+
+# fonction for categorial variables
+plot_fraud_pie <- function(df, cat_var){
+    # Convert the variable name to a symbol
+    var_sym <- sym(cat_var)
+
+    # create contingency table and row-wise proportions
+    tbl <-  table(df[[cat_var]] ,  df$fraud_reported)
+    prop <- tbl / rowSums(tbl)
+
+    # Convert to data frame
+    pie_data <- as.data.frame(prop)
+    colnames(pie_data) <- c(cat_var, "fraud_reported", "count")
+    pie_data$percent <- round(100 * pie_data$count, 1)
+
+    # Create the pie chart
+    ggplot(pie_data, aes(x="", y=count, fill = fraud_reported)) +
+        geom_bar(stat = "identity", width = 1, color = "white") +
+        coord_polar(theta = "y") +
+        facet_wrap(as.formula(paste("~", cat_var))) +
+        geom_text(aes(label = paste0(percent, "%")),
+                  position = position_stack(vjust = 0.5),
+                  color = "black", size = 3.5) +
+        labs(title = paste("Fraud Proportion by", cat_var),
+             fill = "Fraud reported") +
+        theme_minimal()
+}
+cat_vars <- c("policy_state", "insured_sex", "insured_education_level",
+              "insured_occupation", "insured_hobbies", "insured_relationship",
+              "incident_type", "collision_type", "incident_severity",
+              "authorities_contacted", "incident_state", "incident_city",
+              "property_damage", "police_report_available", "auto_make",
+              "auto_model")
+
+
+for (var in cat_vars) print(plot_fraud_pie(df, var))
+
+
+
+
 
 
 
