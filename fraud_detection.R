@@ -58,6 +58,11 @@ unique(df$fraud_reported)
 unique(df$property_damage)
 df$property_damage[df$property_damage == "?"] <- "NO"
 
+df$number_of_vehicles_involved <- as.factor(df$number_of_vehicles_involved)
+df$bodily_injuries <- as.factor(df$bodily_injuries)
+df$witnesses <- as.factor(df$witnesses)
+df$auto_year <- as.factor(df$auto_year)
+
 # Distribution of frauds
 ggplot(data = df, aes(x = fraud_reported)) +
     geom_bar() +
@@ -161,13 +166,59 @@ cat_vars <- c("policy_state", "insured_sex", "insured_education_level",
               "incident_type", "collision_type", "incident_severity",
               "authorities_contacted", "incident_state", "incident_city",
               "property_damage", "police_report_available", "auto_make",
-              "auto_model")
+              "auto_model", "number_of_vehicles_involved", "auto_year",
+              "bodily_injuries", "witnesses")
 
 
 for (var in cat_vars) print(plot_fraud_pie(df, var))
 
 
+# filter only fraud cases
+df_fraud <- df[df$fraud_reported == "Y", ]
 
+for (var in cat_vars) {
+  p <- ggplot(df_fraud, aes(x = reorder(.data[[var]], -table(.data[[var]])[.data[[var]]]))) +
+    geom_bar(fill = "steelblue", color = "white") +
+    theme_minimal(base_size = 13) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = paste("Distribution of", var, "for Fraud = Y"),
+         x = var, y = "Count")
+  print(p)
+}
+
+
+# Numeric variables
+num_var <- c("age", "policy_deductable", "policy_annual_premium",
+             "umbrella_limit", "capital-gains", "capital-loss", "total_claim_amount",
+             "injury_claim", "property_claim", "vehicle_claim")
+
+for (var in num_var){
+    # Boxplot
+    p1 <- ggplot(df, aes(x = fraud_reported, y = .data[[var]])) +
+        geom_boxplot(fill = "lightblue") +
+        labs(title = paste("Boxplot of", var, "by Fraud Reported"),
+             x = "Fraud Reported", y = var) +
+        theme_minimal()
+    print(p1)
+
+    # Bar plot of means
+    mean_data <- summarise(group_by(df, fraud_reported),
+                           mean_value = mean(.data[[var]], na.rm = TRUE))
+    p2 <- ggplot(mean_data, aes(x = fraud_reported, y = mean_value)) +
+        geom_col(fill = "steelblue") +
+        labs(title = paste("Mean", var, "by Fraud Reported"),
+             x = "Fraud Reported", y = paste("Mean", var)) +
+        theme_minimal()
+    print(p2)
+
+    # Histogram
+    p3 <- ggplot(df, aes(x = .data[[var]])) +
+        geom_histogram(fill = "gray", bins = 30, color = "black") +
+        labs(title = paste("Histogral of", var),
+             x = var, y = "Count") +
+        theme_minimal()
+    print(p3)
+}
 
 
 
